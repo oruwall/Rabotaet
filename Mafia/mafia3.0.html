@@ -13,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: min-content;  /* Начальная ширина главного блока */
+            max-width: min-content;
             margin: auto;
             background: #333;
             padding: 20px;
@@ -101,78 +101,118 @@
         button:hover {
             background: #d62839;
         }
+    
+        /* Мобильная версия */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                max-width: 80%; /* Изменяем на 100%, чтобы контейнер занимал всю ширину */
+                flex-direction: column; /* Расставляем элементы вертикально */
+                align-items: center; /* Выравнивание по центру */
+            }
+    
+            .form-container {
+                margin-bottom: 20px; /* Отступ между формой и результатами */
+            }
+    
+            .result-wrapper {
+                display: block; /* Меняем display на block, чтобы таблицы шли по порядку */
+                opacity: 1;
+                padding-left: 0;
+                max-height: 400px;
+            }
+    
+            .result-container {
+                margin: 10px 0; /* Отступ между блоками с таблицами */
+                width: 100%; /* Делаем таблицы по ширине контейнера */
+            }
+    
+            table {
+                width: 100%;
+            }
+    
+            th, td {
+                padding: 8px;
+            }
+        }
     </style>
+    
     <script>
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function distributeRoles() {
+        let container = document.querySelector(".container");
+        let resultWrapper = document.getElementById("result-wrapper");
+        resultWrapper.innerHTML = "";
+        resultWrapper.style.opacity = "0";
+
+        let playersCount = parseInt(document.getElementById("players").value);
+        let mafiaCount = parseInt(document.getElementById("mafia").value);
+        let includeManiac = document.getElementById("maniac").checked;
+        let includeDon = document.getElementById("don").checked;
+        let includeDoctor = document.getElementById("doctor").checked;
+        let customRoles = document.getElementById("customRoles").value.split(',').map(r => r.trim()).filter(r => r);
+
+        let roles = [];
+        if (includeDon) roles.push("Дон мафии");
+        for (let i = 0; i < mafiaCount; i++) roles.push("Мафия");
+        roles.push("Шериф");
+        if (includeDoctor) roles.push("Доктор");
+        if (includeManiac) roles.push("Маньяк");
+        roles = roles.concat(customRoles);
+        while (roles.length < playersCount) roles.push("Мирный житель");
+
+        // Алгоритм Fisher-Yates Shuffle
+        for (let i = roles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [roles[i], roles[j]] = [roles[j], roles[i]]; // Меняем элементы местами
         }
 
-        async function distributeRoles() {
-            let container = document.querySelector(".container");
-            let resultWrapper = document.getElementById("result-wrapper");
-            resultWrapper.innerHTML = "";
-            resultWrapper.style.opacity = "0";
+        let columns = Math.ceil(playersCount / 10);
+        let newWidth = Math.min(300 + columns * 250, window.innerWidth - 20); // Расширяем ширину
+        let newHeight = Math.min(200 + Math.min(playersCount, 10) * 35, window.innerHeight - 40);
 
-            let playersCount = parseInt(document.getElementById("players").value);
-            let mafiaCount = parseInt(document.getElementById("mafia").value);
-            let includeManiac = document.getElementById("maniac").checked;
-            let includeDon = document.getElementById("don").checked;
-            let includeDoctor = document.getElementById("doctor").checked;
-            let customRoles = document.getElementById("customRoles").value.split(',').map(r => r.trim()).filter(r => r);
+        // Устанавливаем ширину контейнера
+        container.style.maxWidth = `${newWidth}px`;
+        container.style.height = `${newHeight}px`;
 
-            let roles = [];
-            if (includeDon) roles.push("Дон мафии");
-            for (let i = 0; i < mafiaCount; i++) roles.push("Мафия");
-            roles.push("Шериф");
-            if (includeDoctor) roles.push("Доктор");
-            if (includeManiac) roles.push("Маньяк");
-            roles = roles.concat(customRoles);
-            while (roles.length < playersCount) roles.push("Мирный житель");
-            roles.sort(() => Math.random() - 0.5);
+        await sleep(500);
+        resultWrapper.style.opacity = "1";
 
-            let columns = Math.ceil(playersCount / 10);
-            let newWidth = Math.min(300 + columns * 250, window.innerWidth - 20); // Расширяем ширину
-            let newHeight = Math.min(200 + Math.min(playersCount, 10) * 35, window.innerHeight - 40);
+        for (let c = 0; c < columns; c++) {
+            let resultContainer = document.createElement("div");
+            resultContainer.classList.add("result-container");
+            resultContainer.innerHTML = "<h3>Результаты:</h3><table><tr><th>Игрок</th><th>Роль</th></tr></table>";
+            resultWrapper.appendChild(resultContainer);
+            resultContainer.style.display = "block";
 
-            // Устанавливаем ширину контейнера
-            container.style.maxWidth = `${newWidth}px`;
-            container.style.height = `${newHeight}px`;
+            await sleep(300);
+            resultContainer.style.opacity = "1";
 
-            await sleep(500);
-            resultWrapper.style.opacity = "1";
+            let table = resultContainer.querySelector("table");
+            for (let i = c * 10; i < Math.min((c + 1) * 10, playersCount); i++) {
+                let row = document.createElement("tr");
+                if (i % 2 === 0) row.style.background = "#555";
+                
+                let playerCell = document.createElement("td");
+                playerCell.textContent = `Игрок ${i + 1}`;
+                let roleCell = document.createElement("td");
 
-            for (let c = 0; c < columns; c++) {
-                let resultContainer = document.createElement("div");
-                resultContainer.classList.add("result-container");
-                resultContainer.innerHTML = "<h3>Результаты:</h3><table><tr><th>Игрок</th><th>Роль</th></tr></table>";
-                resultWrapper.appendChild(resultContainer);
-                resultContainer.style.display = "block";
+                table.appendChild(row);
+                row.appendChild(playerCell);
+                row.appendChild(roleCell);
 
-                await sleep(300);
-                resultContainer.style.opacity = "1";
-
-                let table = resultContainer.querySelector("table");
-                for (let i = c * 10; i < Math.min((c + 1) * 10, playersCount); i++) {
-                    let row = document.createElement("tr");
-                    if (i % 2 === 0) row.style.background = "#555";
-                    
-                    let playerCell = document.createElement("td");
-                    playerCell.textContent = `Игрок ${i + 1}`;
-                    let roleCell = document.createElement("td");
-
-                    table.appendChild(row);
-                    row.appendChild(playerCell);
-                    row.appendChild(roleCell);
-
-                    let roleText = roles[i];
-                    roleCell.innerHTML = "";
-                    for (let j = 0; j < roleText.length; j++) {
-                        await sleep(50);
-                        roleCell.innerHTML += roleText[j];
-                    }
+                let roleText = roles[i];
+                roleCell.innerHTML = "";
+                for (let j = 0; j < roleText.length; j++) {
+                    await sleep(50);
+                    roleCell.innerHTML += roleText[j];
                 }
             }
         }
+    }
     </script>
 </head>
 <body>
